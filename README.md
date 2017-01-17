@@ -1,6 +1,8 @@
 # Scripting-Languages-Comparison
 Compares CSScript, Roslyn and Lua in C#
 
+------
+
 Current results:
 
 Preparing 1000 Lua Instances Elapsed(MS) = 485 - FPS: 2.06185567010309
