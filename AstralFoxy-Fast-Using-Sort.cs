@@ -1,5 +1,11 @@
-// 1 MiB:  26 μs
-// 10 MiB: 270 μs
+﻿// benchmarks:
+//
+//     quickusings.hoist:
+//         1 MiB:  26 μs
+//         10 MiB: 270 μs
+//
+//     equivalent-regex:
+//         10 MiB: 72ms (270x)
 static class QuickUsings
 {
     // note: this method assumes complete and total ownership of `code` and will modify it! once you pass a string to
@@ -38,7 +44,7 @@ static class QuickUsings
 
                     // then, comment out the span. doing it this way has two benefits:
                     //     - it is zero-copy
-                    //     - it preserves file-line-column information in debug symbols
+                    //     - it preserves file-line-column information in debug symbols (with a fixed offset for line number)
                     text[start + 0] = '/';
                     text[start + 1] = '*';
                     text[start + length - 2] = '*';
@@ -65,27 +71,26 @@ static class QuickUsings
 
 
         // create the string
-        var output = new string('\0', length);
-        var i = 0;
+        var output     = new string('\0', length);
+        var byteLength = length * sizeof(char);
+        var i          = 0;
 
 
         // copy constituent parts into the output string
         fixed (char* destination = output)
         {
-            var destinationLength = length * sizeof(char);
-
             foreach (var x in headers)
             {
                 var l = x.Length;
 
                 fixed (char* source = x)
-                    Buffer.MemoryCopy(source, destination + i, destinationLength, l * sizeof(char));
+                    Buffer.MemoryCopy(source, destination + i, byteLength - i * sizeof(char), l * sizeof(char));
 
                 i += l;
             }
 
             fixed (char* source = body)
-                Buffer.MemoryCopy(source, destination + i, destinationLength, body.Length * sizeof(char));
+                Buffer.MemoryCopy(source, destination + i, byteLength - i * sizeof(char), body.Length * sizeof(char));
         }
 
 
@@ -110,7 +115,7 @@ static class QuickUsings
 
     static unsafe bool Equals(byte* x, byte* y, int length)
     {
-        var last = x + length;
+        var last   = x + length;
         var last32 = last - 32;
 
         // unrolled loop
